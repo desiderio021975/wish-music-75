@@ -117,8 +117,11 @@
       trackList.innerHTML = '<p>Caricamento brani...</p>';
 
       // Recupera le tracce dalla tabella
-      const { data: tracks, error } = await supabaseClient.from('tracks').select('*');
-
+const { data: tracks, error } = await supabaseClient
+        .from('tracks')
+        .select('*')
+        .order('title', { ascending: true });
+        
       if (error || !tracks || tracks.length === 0) {
         trackList.innerHTML = '<p style="color: #aaa;">Nessun brano ancora presente.</p>';
         return;

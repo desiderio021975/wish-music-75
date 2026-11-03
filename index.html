@@ -77,6 +77,66 @@
     .bulk-btn:hover {
       background: #444;
     }
+
+    /* Stile Display Brano in Esecuzione con Equalizzatore */
+    #now-playing-display {
+      background: #111;
+      border: 1px solid #333;
+      border-radius: 6px;
+      padding: 12px 15px;
+      margin-bottom: 15px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: inset 0 2px 5px rgba(0,0,0,0.8);
+    }
+    .np-info {
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      flex: 1;
+      margin-right: 15px;
+    }
+    .np-title {
+      font-size: 0.95rem;
+      color: #1db954;
+      font-weight: bold;
+      margin: 0 0 3px 0;
+    }
+    .np-artist {
+      font-size: 0.8rem;
+      color: #aaa;
+      margin: 0;
+    }
+
+    /* Equalizzatore a barre animate */
+    .equalizer {
+      display: flex;
+      align-items: flex-end;
+      gap: 3px;
+      height: 22px;
+      min-width: 36px;
+    }
+    .eq-bar {
+      width: 4px;
+      background: #1db954;
+      height: 4px;
+      border-radius: 2px;
+    }
+    /* Animazione attiva */
+    .playing .eq-bar {
+      animation: bounce 0.8s ease-in-out infinite alternate;
+    }
+    .playing .eq-bar:nth-child(1) { animation-delay: 0.1s; }
+    .playing .eq-bar:nth-child(2) { animation-delay: 0.4s; }
+    .playing .eq-bar:nth-child(3) { animation-delay: 0.2s; }
+    .playing .eq-bar:nth-child(4) { animation-delay: 0.5s; }
+    .playing .eq-bar:nth-child(5) { animation-delay: 0.3s; }
+
+    @keyframes bounce {
+      0% { height: 4px; }
+      100% { height: 20px; }
+    }
   </style>
 </head>
 <body>
@@ -132,6 +192,21 @@
         </div>
       </div>
 
+      <!-- Riquadro Now Playing con Equalizzatore Animato -->
+      <div id="now-playing-display">
+        <div class="np-info">
+          <p id="np-title" class="np-title">Nessun brano in riproduzione</p>
+          <p id="np-artist" class="np-artist">Seleziona un brano o avvia il player</p>
+        </div>
+        <div id="eq-container" class="equalizer">
+          <div class="eq-bar"></div>
+          <div class="eq-bar"></div>
+          <div class="eq-bar"></div>
+          <div class="eq-bar"></div>
+          <div class="eq-bar"></div>
+        </div>
+      </div>
+
       <!-- Controlli di Selezione Massiva (appaiono solo se Lista Top o Repeat sono attivi) -->
       <div id="bulk-controls" class="hidden" style="display: flex; gap: 8px; margin-bottom: 15px;">
         <button onclick="toggleAllCheckboxes(true)" class="bulk-btn">Seleziona Tutti</button>
@@ -153,6 +228,7 @@
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     let allTracks = [];
+    let currentFilteredTracks = []; // Conserva i brani attualmente filtrati
     let currentMode = 'playAll'; 
 
     let activeQueue = [];
@@ -278,6 +354,8 @@
       if (selectedGenre) filtered = filtered.filter(t => t.genere === selectedGenre);
       if (selectedArtist) filtered = filtered.filter(t => t.artista === selectedArtist);
 
+      currentFilteredTracks = filtered; // Aggiorna la variabile globale filtrata
+
       if (filtered.length === 0) {
         trackList.innerHTML = '<p style="color: #aaa; text-align: center;">Nessun brano corrisponde ai filtri selezionati.</p>';
         bulkControls.classList.add('hidden');
@@ -309,7 +387,7 @@
           </div>
           <p style="margin: 0 0 8px 0; font-size: 0.85rem; color: #1db954; font-weight: bold;">${track.artista || 'Artista non specificato'}</p>
           <p style="margin: 0 0 10px 0; font-size: 0.85rem; color: #ccc;">${track.description || ''}</p>
-          <audio controls controlsList="nodownload" oncontextmenu="return false;" style="width: 100%;" data-index="${i}">
+          <audio controls controlsList="nodownload" oncontextmenu="return false;" style="width: 100%;" data-index="${i}" onplay="onManualPlay(${i})">
             <source src="${data.publicUrl}" type="audio/mpeg">
             Il tuo browser non supporta l'elemento audio.
           </audio>
@@ -345,6 +423,36 @@
       });
     }
 
+    // Aggiorna il display LCD e attiva/disattiva l'equalizzatore animato
+    function updateNowPlayingDisplay(track, isPlaying) {
+      const titleEl = document.getElementById('np-title');
+      const artistEl = document.getElementById('np-artist');
+      const eqContainer = document.getElementById('eq-container');
+
+      if (track && isPlaying) {
+        titleEl.innerText = track.title;
+        artistEl.innerText = track.artista || 'Artista non specificato';
+        eqContainer.classList.add('playing');
+      } else {
+        titleEl.innerText = 'Nessun brano in riproduzione';
+        artistEl.innerText = 'Seleziona un brano o avvia il player';
+        eqContainer.classList.remove('playing');
+      }
+    }
+
+    // Gestisce il caso in cui l'utente preme play manualmente su un lettore della lista
+    function onManualPlay(filteredIndex) {
+      const audioElements = document.querySelectorAll('audio');
+      audioElements.forEach((audio, idx) => {
+        if (idx !== filteredIndex) audio.pause();
+      });
+
+      const track = currentFilteredTracks[filteredIndex];
+      if (track) {
+        updateNowPlayingDisplay(track, true);
+      }
+    }
+
     function stopAllTracks() {
       const audioElements = document.querySelectorAll('audio');
       audioElements.forEach(audio => {
@@ -353,6 +461,7 @@
       });
       currentQueueIndex = -1;
       activeQueue = [];
+      updateNowPlayingDisplay(null, false);
     }
 
     function buildQueue() {
@@ -392,18 +501,24 @@
 
     function playQueueIndex(index) {
       if (index >= 0 && index < activeQueue.length) {
-        // Mette in pausa tutti gli altri prima di far partire quello corrente
         const audioElements = document.querySelectorAll('audio');
         audioElements.forEach(audio => audio.pause());
 
         currentQueueIndex = index;
         const currentAudio = activeQueue[currentQueueIndex];
+        const trackIndex = currentAudio.getAttribute('data-index');
+        const track = currentFilteredTracks[trackIndex];
+
+        // Aggiorna il display LCD superiore con le info del brano in coda
+        updateNowPlayingDisplay(track, true);
         
         currentAudio.onended = function() {
           if (currentQueueIndex + 1 < activeQueue.length) {
             playQueueIndex(currentQueueIndex + 1);
           } else if (currentMode === 'repeat') {
             playQueueIndex(0);
+          } else {
+            updateNowPlayingDisplay(null, false);
           }
         };
 

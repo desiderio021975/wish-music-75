@@ -280,4 +280,150 @@
         trackCard.style.cssText = 'background: #2a2a2a; padding: 15px; border-radius: 6px; margin-bottom: 15px;';
         trackCard.innerHTML = `
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
-            <div style="display: flex; align-items: center; gap: 8px; flex:
+            <div style="display: flex; align-items: center; gap: 8px; flex: 1;">
+              ${leftCheckboxesHtml}
+              <h4 style="margin: 0; color: #ffffff; font-size: 1.1rem;">${track.title}</h4>
+            </div>
+            <span style="font-size: 0.75rem; background: #333; color: #1db954; padding: 2px 8px; border-radius: 10px;">${track.genere || 'Generico'} (${track.lingua || 'N/D'})</span>
+          </div>
+          <p style="margin: 0 0 8px 0; font-size: 0.85rem; color: #1db954; font-weight: bold;">${track.artista || 'Artista non specificato'}</p>
+          <p style="margin: 0 0 10px 0; font-size: 0.85rem; color: #ccc;">${track.description || ''}</p>
+          <audio controls controlsList="nodownload" oncontextmenu="return false;" style="width: 100%;" data-index="${i}">
+            <source src="${data.publicUrl}" type="audio/mpeg">
+            Il tuo browser non supporta l'elemento audio.
+          </audio>
+        `;
+        trackList.appendChild(trackCard);
+      }
+      updateModeUI();
+    }
+
+    function setMode(mode) {
+      currentMode = mode;
+      updateModeUI();
+    }
+
+    function toggleMode(modeName) {
+      activeFiltersMode[modeName] = !activeFiltersMode[modeName];
+      renderTracks();
+    }
+
+    function updateModeUI() {
+      ['playAll', 'random'].forEach(m => {
+        const btn = document.getElementById(`btn-${m}`);
+        if (btn) {
+          if (currentMode === m) {
+            btn.classList.add('active-mode');
+          } else {
+            btn.classList.remove('active-mode');
+          }
+        }
+      });
+
+      ['listaTop', 'repeat'].forEach(m => {
+        const btn = document.getElementById(`btn-${m}`);
+        if (btn) {
+          if (activeFiltersMode[m]) {
+            btn.classList.add('active-mode');
+          } else {
+            btn.classList.remove('active-mode');
+          }
+        }
+      });
+    }
+
+    function stopAllTracks() {
+      const audioElements = document.querySelectorAll('audio');
+      audioElements.forEach(audio => {
+        audio.pause();
+        audio.currentTime = 0;
+      });
+      currentQueueIndex = -1;
+      activeQueue = [];
+    }
+
+    function buildQueue() {
+      const audioElements = Array.from(document.querySelectorAll('audio'));
+      if (audioElements.length === 0) return [];
+
+      let targetAudios = audioElements.filter(audio => {
+        const index = audio.getAttribute('data-index');
+        
+        if (activeFiltersMode.listaTop) {
+          const topCheck = document.querySelector(`.top-checkbox[data-index="${index}"]`);
+          if (topCheck && !topCheck.checked) return false;
+        }
+
+        if (activeFiltersMode.repeat) {
+          const repeatCheck = document.querySelector(`.repeat-checkbox[data-index="${index}"]`);
+          if (repeatCheck && !repeatCheck.checked) return false;
+        }
+
+        return true;
+      });
+
+      if (currentMode === 'random') {
+        targetAudios.sort(() => Math.random() - 0.5);
+      }
+
+      return targetAudios;
+    }
+
+    function startPlaySong() {
+      stopAllTracks();
+      activeQueue = buildQueue();
+
+      if (activeQueue.length === 0) {
+        alert("Nessun brano selezionato soddisfa i filtri attivi (Lista Top / Repeat).");
+        return;
+      }
+
+      currentQueueIndex = 0;
+      playQueueIndex(currentQueueIndex);
+    }
+
+    function playQueueIndex(index) {
+      if (index >= 0 && index < activeQueue.length) {
+        stopAllTracks();
+        currentQueueIndex = index;
+        const currentAudio = activeQueue[currentQueueIndex];
+        
+        currentAudio.onended = function() {
+          if (currentQueueIndex + 1 < activeQueue.length) {
+            playQueueIndex(currentQueueIndex + 1);
+          }
+        };
+
+        currentAudio.play().catch(e => {
+          console.log("Riproduzione automatica bloccata dal browser:", e);
+        });
+      }
+    }
+
+    function playNext() {
+      if (activeQueue.length === 0) {
+        activeQueue = buildQueue();
+      }
+      if (activeQueue.length > 0) {
+        let nextIndex = currentQueueIndex + 1;
+        if (nextIndex >= activeQueue.length) {
+          nextIndex = 0;
+        }
+        playQueueIndex(nextIndex);
+      }
+    }
+
+    function playPrevious() {
+      if (activeQueue.length > 0 && currentQueueIndex > 0) {
+        playQueueIndex(currentQueueIndex - 1);
+      }
+    }
+
+    async function logout() {
+      await supabaseClient.auth.signOut();
+      document.getElementById('login-box').classList.add('hidden');
+      document.getElementById('player-box').classList.remove('hidden');
+    }
+  </script>
+</body>
+</html>

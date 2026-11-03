@@ -66,6 +66,15 @@
       font-size: 0.85rem;
       text-align: center;
     }
+    .bulk-btn {
+      padding: 6px 12px;
+      font-size: 0.75rem;
+      background: #333;
+      border: 1px solid #555;
+    }
+    .bulk-btn:hover {
+      background: #444;
+    }
   </style>
 </head>
 <body>
@@ -87,7 +96,7 @@
         Benvenuto! Accesso autorizzato.<br>L'ascolto è consentito solo agli utenti registrati.
       </p>
 
-      <!-- 1. Menu a tendina per l'alberatura (Filtri a cascata) -->
+      <!-- 1. Menu a tendina per i filtri a cascata -->
       <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
         <select id="filter-language" onchange="updateGenres()">
           <option value="">Tutte le Lingue</option>
@@ -104,7 +113,7 @@
       <div style="margin-bottom: 20px; border: 1px solid #333; padding: 15px; border-radius: 6px; background: #222;">
         <p style="font-size: 0.9rem; color: #aaa; margin: 0 0 10px 0; text-align: center;">Pannello di Controllo Player</p>
         
-        <!-- Prima Riga: 4 pulsanti di modalità esclusiva -->
+        <!-- Prima Riga: Modalità esclusive -->
         <div style="display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px;">
           <button onclick="setMainMode('playAll')" id="btn-playAll" class="control-btn" style="background: #2c3e50;">▶ Play ALL</button>
           <button onclick="setMainMode('random')" id="btn-random" class="control-btn" style="background: #8e44ad;">🔀 Random</button>
@@ -112,13 +121,19 @@
           <button onclick="setMainMode('repeat')" id="btn-repeat" class="control-btn" style="background: #16a085;">🔁 Repeat</button>
         </div>
 
-        <!-- Seconda Riga: Azioni sui brani -->
+        <!-- Seconda Riga: Comandi d'azione sui brani -->
         <div style="display: flex; gap: 6px;">
           <button onclick="stopAllTracks()" class="nav-btn" style="background: #e74c3c;">⏹ Stop</button>
           <button onclick="playPrevious()" class="nav-btn" style="background: #34495e;">⏮ Precedente</button>
           <button onclick="startPlaySong()" class="nav-btn" style="background: #1db954;">▶ Play Song</button>
           <button onclick="playNext()" class="nav-btn" style="background: #34495e;">Successivo ⏭</button>
         </div>
+      </div>
+
+      <!-- Controlli di Selezione Massiva (appaiono solo se Lista Top o Repeat sono attivi) -->
+      <div id="bulk-controls" class="hidden" style="display: flex; justify-content: flex-end; gap: 8px; margin-bottom: 10px;">
+        <button onclick="toggleAllCheckboxes(true)" class="bulk-btn">Seleziona Tutti</button>
+        <button onclick="toggleAllCheckboxes(false)" class="bulk-btn">Deseleziona Tutti</button>
       </div>
 
       <!-- 3. Lista dei brani -->
@@ -136,7 +151,7 @@
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     let allTracks = [];
-    let currentMode = 'playAll'; // 'playAll', 'random', 'listaTop', 'repeat'
+    let currentMode = 'playAll'; 
 
     let activeQueue = [];
     let currentQueueIndex = -1;
@@ -248,6 +263,14 @@
       const selectedGenre = document.getElementById('filter-genre').value;
       const selectedArtist = document.getElementById('filter-artist').value;
       const trackList = document.getElementById('track-list');
+      const bulkControls = document.getElementById('bulk-controls');
+
+      // Mostra o nascondi i tasti Seleziona/Deseleziona tutti in base alla modalità
+      if (currentMode === 'listaTop' || currentMode === 'repeat') {
+        bulkControls.classList.remove('hidden');
+      } else {
+        bulkControls.classList.add('hidden');
+      }
 
       let filtered = allTracks;
       if (selectedLang) filtered = filtered.filter(t => t.lingua === selectedLang);
@@ -256,6 +279,7 @@
 
       if (filtered.length === 0) {
         trackList.innerHTML = '<p style="color: #aaa; text-align: center;">Nessun brano corrisponde ai filtri selezionati.</p>';
+        bulkControls.classList.add('hidden');
         return;
       }
 
@@ -294,7 +318,14 @@
       updateModeUI();
     }
 
-    // Gestione della prima riga: seleziona una modalità in esclusiva e ridisegna
+    // Funzione per selezionare o deselezionare massivamente tutti i checkbox visibili
+    function toggleAllCheckboxes(selectStatus) {
+      const checkboxes = document.querySelectorAll('.track-checkbox');
+      checkboxes.forEach(cb => {
+        cb.checked = selectStatus;
+      });
+    }
+
     function setMainMode(mode) {
       currentMode = mode;
       renderTracks();
@@ -314,7 +345,6 @@
       });
     }
 
-    // Stop globale
     function stopAllTracks() {
       const audioElements = document.querySelectorAll('audio');
       audioElements.forEach(audio => {
@@ -325,7 +355,6 @@
       activeQueue = [];
     }
 
-    // Costruisce la coda di esecuzione in base alla modalità della prima riga e ai checkbox attivi
     function buildQueue() {
       const audioElements = Array.from(document.querySelectorAll('audio'));
       if (audioElements.length === 0) return [];
@@ -333,7 +362,6 @@
       let targetAudios = audioElements.filter(audio => {
         const index = audio.getAttribute('data-index');
         
-        // Se siamo in modalità Lista Top o Repeat, verifichiamo lo stato del checkbox
         if (currentMode === 'listaTop' || currentMode === 'repeat') {
           const checkbox = document.querySelector(`.track-checkbox[data-index="${index}"]`);
           if (checkbox && !checkbox.checked) return false;
@@ -342,7 +370,6 @@
         return true;
       });
 
-      // Se la modalità è Random, mescoliamo l'array filtrato
       if (currentMode === 'random') {
         targetAudios.sort(() => Math.random() - 0.5);
       }
@@ -350,7 +377,6 @@
       return targetAudios;
     }
 
-    // Azione Play Song: Avvia la riproduzione in base alla modalità selezionata
     function startPlaySong() {
       stopAllTracks();
       activeQueue = buildQueue();
@@ -374,7 +400,6 @@
           if (currentQueueIndex + 1 < activeQueue.length) {
             playQueueIndex(currentQueueIndex + 1);
           } else if (currentMode === 'repeat') {
-            // Se siamo in repeat e finisce la lista, ricomincia da capo
             playQueueIndex(0);
           }
         };
@@ -385,26 +410,29 @@
       }
     }
 
-    // Tasto Successivo
     function playNext() {
       if (activeQueue.length === 0) {
         activeQueue = buildQueue();
       }
       if (activeQueue.length > 0) {
         let nextIndex = currentQueueIndex + 1;
-        if (nextIndex >= activeQueue.length) {
-          nextIndex = 0; // Torna all'inizio
+        if (nextIndex >= activeQueue.length || nextIndex < 0) {
+          nextIndex = 0;
         }
         playQueueIndex(nextIndex);
       }
     }
 
-    // Tasto Precedente
     function playPrevious() {
-      if (activeQueue.length > 0 && currentQueueIndex > 0) {
-        playQueueIndex(currentQueueIndex - 1);
-      } else if (activeQueue.length > 0) {
-        playQueueIndex(0);
+      if (activeQueue.length === 0) {
+        activeQueue = buildQueue();
+      }
+      if (activeQueue.length > 0) {
+        let prevIndex = currentQueueIndex - 1;
+        if (prevIndex < 0) {
+          prevIndex = activeQueue.length - 1;
+        }
+        playQueueIndex(prevIndex);
       }
     }
 

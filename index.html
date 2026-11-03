@@ -25,7 +25,7 @@
       padding: 30px;
       border-radius: 8px;
       width: 100%;
-      max-width: 600px;
+      max-width: 650px;
       box-shadow: 0 4px 15px rgba(0,0,0,0.5);
     }
     input, select {
@@ -39,7 +39,6 @@
       box-sizing: border-box;
     }
     button {
-      width: 100%;
       padding: 10px;
       background: #1db954;
       color: #fff;
@@ -49,7 +48,16 @@
       font-weight: bold;
     }
     button:hover {
-      background: #1aa34a;
+      opacity: 0.9;
+    }
+    .control-btn {
+      flex: 1;
+      min-width: 110px;
+      font-size: 0.85rem;
+    }
+    .active-mode {
+      border: 2px solid #ffffff !important;
+      box-shadow: 0 0 8px #1db954;
     }
   </style>
 </head>
@@ -61,20 +69,19 @@
       <h2 style="color: #1db954; text-align: center; margin-top: 0;">Accesso Riservato</h2>
       <input type="email" id="email" placeholder="Email">
       <input type="password" id="password" placeholder="Password">
-      <button onclick="login()">Accedi</button>
+      <button onclick="login()" style="width: 100%;">Accedi</button>
       <p id="error-msg" style="color: #ff4d4d; text-align: center; margin-top: 10px;"></p>
     </div>
 
     <!-- Sezione Player e Catalogo -->
     <div id="player-box" class="hidden">
-      <h2 style="color: #1db954; text-align: center; margin-top: 0;">Catalogo Musicale Privato creato da ChieSimo</h2>
+      <h2 style="color: #1db954; text-align: center; margin-top: 0;">Catalogo Privato</h2>
       <p style="text-align: center; color: #ccc; margin-bottom: 20px;">
-        <span style="display: block;">Benvenuto! Accesso autorizzato.</span>
-        <span style="display: block;">L'ascolto è consentito solo agli utenti registrati.</span>
-        <span style="display: block;">La copia e divulgazione è severamente vietata e non consentita.</span>
+        Benvenuto! Accesso autorizzato.<br>L'ascolto è consentito solo agli utenti registrati.
       </p>
+
       <!-- Menu a tendina per l'alberatura (Filtri a cascata) -->
-      <div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
+      <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
         <select id="filter-language" onchange="updateGenres()">
           <option value="">Tutte le Lingue</option>
         </select>
@@ -89,17 +96,41 @@
       <!-- Lista dei brani -->
       <div id="track-list"></div>
 
-      <button onclick="logout()" style="background: #333; margin-top: 20px;">Esci</button>
+      <!-- Menu a Tasti Avanzato al termine della lista -->
+      <div style="margin-top: 25px; border-top: 1px solid #333; padding-top: 20px;">
+        <p style="font-size: 0.9rem; color: #aaa; margin-bottom: 10px; text-align: center;">Pannello di Controllo Player</p>
+        
+        <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px;">
+          <button onclick="stopAllTracks()" class="control-btn" style="background: #e74c3c;">⏹ Stop</button>
+          <button onclick="setMode('playAll')" id="btn-playAll" class="control-btn" style="background: #2c3e50;">▶ Play ALL</button>
+          <button onclick="setMode('random')" id="btn-random" class="control-btn" style="background: #8e44ad;">🔀 Random</button>
+          <button onclick="toggleMode('listaTop')" id="btn-listaTop" class="control-btn" style="background: #d35400;">⭐ Lista Top</button>
+          <button onclick="toggleMode('repeat')" id="btn-repeat" class="control-btn" style="background: #16a085;">🔁 Repeat</button>
+        </div>
+
+        <div>
+          <button onclick="startPlaySong()" style="width: 100%; background: #1db954; padding: 12px; font-size: 1rem;">▶ Play Song (Avvia)</button>
+        </div>
+      </div>
+
+      <button onclick="logout()" style="width: 100%; background: #333; margin-top: 20px;">Esci</button>
     </div>
   </div>
 
   <script>
-    // Sostituisci qui con le tue chiavi prese da Settings > API su Supabase
+
+// Sostituisci qui con le tue chiavi prese da Settings > API su Supabase
     const SUPABASE_URL = 'https://srymbehnppgvxjnithbj.supabase.co';
     const SUPABASE_ANON_KEY = 'sb_publishable_TJ9gHfCbw09uNbT46xDByg_xluGQ1f6';
 
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
     let allTracks = [];
+    let currentMode = 'playAll'; // Modalità predefinita
+    let activeFiltersMode = {
+      listaTop: false,
+      repeat: false
+    };
 
     async function login() {
       const email = document.getElementById('email').value;
@@ -107,7 +138,6 @@
       const errorMsg = document.getElementById('error-msg');
       errorMsg.innerText = '';
 
-      // 1. Autenticazione utente
       const { data: { user }, error } = await supabaseClient.auth.signInWithPassword({ email, password });
 
       if (error) {
@@ -115,7 +145,6 @@
         return;
       }
 
-      // 2. Controllo permesso approved nella tabella profiles
       const { data: profile, error: profileError } = await supabaseClient
         .from('profiles')
         .select('status')
@@ -128,7 +157,6 @@
         return;
       }
 
-      // 3. Mostra area riservata e carica le tracce
       document.getElementById('login-box').classList.add('hidden');
       document.getElementById('player-box').classList.remove('hidden');
       
@@ -139,14 +167,13 @@
       const trackList = document.getElementById('track-list');
       trackList.innerHTML = '<p>Caricamento brani...</p>';
 
-      // Recupera le tracce dalla tabella ordinandole per titolo
       const { data: tracks, error } = await supabaseClient
         .from('tracks')
         .select('*')
         .order('title', { ascending: true });
 
       if (error || !tracks || tracks.length === 0) {
-        trackList.innerHTML = '<p style="color: #aaa;">Nessun brano ancora presente.</p>';
+        trackList.innerHTML = '<p style="color: #aaa; text-align: center;">Nessun brano ancora presente.</p>';
         return;
       }
 
@@ -225,8 +252,18 @@
 
       trackList.innerHTML = '';
 
-      for (const track of filtered) {
+      for (let i = 0; i < filtered.length; i++) {
+        const track = filtered[i];
         const { data } = supabaseClient.storage.from('wish-music-75-files').getPublicUrl(track.file_key);
+
+        // Generazione HTML dei checkbox condizionali in base ai tasti attivi
+        let checkboxesHtml = '';
+        if (activeFiltersMode.listaTop) {
+          checkboxesHtml += `<label style="font-size: 0.8rem; color: #d35400; margin-right: 15px;"><input type="checkbox" class="top-checkbox" data-index="${i}" checked> Lista Top</label>`;
+        }
+        if (activeFiltersMode.repeat) {
+          checkboxesHtml += `<label style="font-size: 0.8rem; color: #16a085;"><input type="checkbox" class="repeat-checkbox" data-index="${i}" checked> Repeat</label>`;
+        }
 
         const trackCard = document.createElement('div');
         trackCard.style.cssText = 'background: #2a2a2a; padding: 15px; border-radius: 6px; margin-bottom: 15px;';
@@ -237,19 +274,118 @@
           </div>
           <p style="margin: 0 0 8px 0; font-size: 0.85rem; color: #1db954; font-weight: bold;">${track.artista || 'Artista non specificato'}</p>
           <p style="margin: 0 0 10px 0; font-size: 0.85rem; color: #ccc;">${track.description || ''}</p>
-          <audio controls controlsList="nodownload" oncontextmenu="return false;" style="width: 100%;">
+          ${checkboxesHtml ? `<div style="margin-bottom: 8px;">${checkboxesHtml}</div>` : ''}
+          <audio controls controlsList="nodownload" oncontextmenu="return false;" style="width: 100%;" data-index="${i}">
             <source src="${data.publicUrl}" type="audio/mpeg">
             Il tuo browser non supporta l'elemento audio.
           </audio>
         `;
         trackList.appendChild(trackCard);
       }
+      updateModeUI();
+    }
+
+    function setMode(mode) {
+      currentMode = mode;
+      updateModeUI();
+    }
+
+    function toggleMode(modeName) {
+      activeFiltersMode[modeName] = !activeFiltersMode[modeName];
+      renderTracks(); // Ridisegna per mostrare/nascondere i checkbox
+    }
+
+    function updateModeUI() {
+      // Gestione evidenziazione pulsanti modalità
+      ['playAll', 'random'].forEach(m => {
+        const btn = document.getElementById(`btn-${m}`);
+        if (btn) {
+          if (currentMode === m) {
+            btn.classList.add('active-mode');
+          } else {
+            btn.classList.remove('active-mode');
+          }
+        }
+      });
+
+      ['listaTop', 'repeat'].forEach(m => {
+        const btn = document.getElementById(`btn-${m}`);
+        if (btn) {
+          if (activeFiltersMode[m]) {
+            btn.classList.add('active-mode');
+          } else {
+            btn.classList.remove('active-mode');
+          }
+        }
+      });
+    }
+
+    function stopAllTracks() {
+      const audioElements = document.querySelectorAll('audio');
+      audioElements.forEach(audio => {
+        audio.pause();
+        audio.currentTime = 0;
+      });
+    }
+
+    // Funzione Play Song principale basata sui tasti attivi e checkbox
+    function startPlaySong() {
+      stopAllTracks();
+
+      const audioElements = Array.from(document.querySelectorAll('audio'));
+      if (audioElements.length === 0) return;
+
+      // Filtra i brani in base alle condizioni attive dei checkbox
+      let targetAudios = audioElements.filter(audio => {
+        const index = audio.getAttribute('data-index');
+        
+        if (activeFiltersMode.listaTop) {
+          const topCheck = document.querySelector(`.top-checkbox[data-index="${index}"]`);
+          if (topCheck && !topCheck.checked) return false;
+        }
+
+        if (activeFiltersMode.repeat) {
+          const repeatCheck = document.querySelector(`.repeat-checkbox[data-index="${index}"]`);
+          if (repeatCheck && !repeatCheck.checked) return false;
+        }
+
+        return true;
+      });
+
+      if (targetAudios.length === 0) {
+        alert("Nessun brano selezionato soddisfa i filtri attivi (Lista Top / Repeat).");
+        return;
+      }
+
+      // Se la modalità è Random, mescola l'array dei brani filtrati
+      if (currentMode === 'random') {
+        targetAudios.sort(() => Math.random() - 0.5);
+      }
+
+      let currentIndex = 0;
+
+      function playNextInQueue() {
+        if (currentIndex < targetAudios.length) {
+          const currentAudio = targetAudios[currentIndex];
+          
+          currentAudio.onended = function() {
+            currentIndex++;
+            playNextInQueue();
+          };
+
+          currentAudio.play().catch(e => {
+            console.log("Riproduzione automatica bloccata dal browser:", e);
+          });
+        }
+      }
+
+      playNextInQueue();
     }
 
     async function logout() {
       await supabaseClient.auth.signOut();
-      document.getElementById('login-box').classList.remove('hidden');
-      document.getElementById('player-box').classList.add('hidden');
+      document.getElementById('login-box').classList.add('hidden');
+      document.getElementById('player-box').classList.remove('hidden');
     }
   </script>
 </body>

@@ -86,7 +86,7 @@
         Benvenuto! Accesso autorizzato.<br>L'ascolto è consentito solo agli utenti registrati.
       </p>
 
-      <!-- Menu a tendina per l'alberatura (Filtri a cascata) -->
+      <!-- 1. Menu a tendina per l'alberatura (Filtri a cascata) -->
       <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
         <select id="filter-language" onchange="updateGenres()">
           <option value="">Tutte le Lingue</option>
@@ -99,12 +99,9 @@
         </select>
       </div>
 
-      <!-- Lista dei brani -->
-      <div id="track-list"></div>
-
-      <!-- Menu a Tasti Avanzato al termine della lista -->
-      <div style="margin-top: 25px; border-top: 1px solid #333; padding-top: 20px;">
-        <p style="font-size: 0.9rem; color: #aaa; margin-bottom: 10px; text-align: center;">Pannello di Controllo Player</p>
+      <!-- 2. Pannello di Controllo Player (Spostato qui subito dopo i filtri) -->
+      <div style="margin-bottom: 20px; border: 1px solid #333; padding: 15px; border-radius: 6px; background: #222;">
+        <p style="font-size: 0.9rem; color: #aaa; margin: 0 0 10px 0; text-align: center;">Pannello di Controllo Player</p>
         
         <!-- Riga dei modi e stop -->
         <div style="display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px;">
@@ -115,13 +112,16 @@
           <button onclick="toggleMode('repeat')" id="btn-repeat" class="control-btn" style="background: #16a085;">🔁 Repeat</button>
         </div>
 
-        <!-- Riga dedicata Precedente, Play Song, Successivo (larghi uguali a copertura finestra) -->
+        <!-- Riga navigazione: Precedente, Play Song, Successivo -->
         <div style="display: flex; gap: 8px;">
           <button onclick="playPrevious()" class="nav-btn" style="background: #34495e;">⏮ Precedente</button>
           <button onclick="startPlaySong()" class="nav-btn" style="background: #1db954;">▶ Play Song</button>
           <button onclick="playNext()" class="nav-btn" style="background: #34495e;">Successivo ⏭</button>
         </div>
       </div>
+
+      <!-- 3. Lista dei brani -->
+      <div id="track-list"></div>
 
       <button onclick="logout()" style="width: 100%; background: #333; margin-top: 20px;">Esci</button>
     </div>
@@ -268,7 +268,6 @@
         const track = filtered[i];
         const { data } = supabaseClient.storage.from('wish-music-75-files').getPublicUrl(track.file_key);
 
-        // Checkbox posizionati a sinistra accanto al titolo
         let leftCheckboxesHtml = '';
         if (activeFiltersMode.listaTop) {
           leftCheckboxesHtml += `<label style="font-size: 0.8rem; color: #d35400; margin-right: 10px; cursor: pointer;"><input type="checkbox" class="top-checkbox" data-index="${i}" checked> Top</label>`;
@@ -408,7 +407,7 @@
       if (activeQueue.length > 0) {
         let nextIndex = currentQueueIndex + 1;
         if (nextIndex >= activeQueue.length) {
-          nextIndex = 0; // Loop ricorsivo della coda
+          nextIndex = 0;
         }
         playQueueIndex(nextIndex);
       }
@@ -422,8 +421,8 @@
 
     async function logout() {
       await supabaseClient.auth.signOut();
-      document.getElementById('login-box').classList.add('hidden');
-      document.getElementById('player-box').classList.remove('hidden');
+      document.getElementById('login-box').classList.remove('hidden');
+      document.getElementById('player-box').classList.add('hidden');
     }
   </script>
 </body>

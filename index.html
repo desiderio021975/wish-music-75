@@ -77,6 +77,7 @@
     const SUPABASE_ANON_KEY = 'sb_publishable_TJ9gHfCbw09uNbT46xDByg_xluGQ1f6';
 
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    let allTracks = [];
 
     async function login() {
       const email = document.getElementById('email').value;
@@ -116,27 +117,103 @@
       const trackList = document.getElementById('track-list');
       trackList.innerHTML = '<p>Caricamento brani...</p>';
 
-      // Recupera le tracce dalla tabella
-const { data: tracks, error } = await supabaseClient
+      // Recupera le tracce dalla tabella ordinandole per titolo
+      const { data: tracks, error } = await supabaseClient
         .from('tracks')
         .select('*')
         .order('title', { ascending: true });
-        
+
       if (error || !tracks || tracks.length === 0) {
         trackList.innerHTML = '<p style="color: #aaa;">Nessun brano ancora presente.</p>';
         return;
       }
 
-      trackList.innerHTML = '';
+      allTracks = tracks;
+      populateLanguages();
+      renderTracks();
+    }
+
+    function populateLanguages() {
+      const langSelect = document.getElementById('filter-language');
+      const languages = [...new Set(allTracks.map(t => t.lingua).filter(Boolean))].sort();
       
-      // Crea il player per ciascun brano
-      for (const track of tracks) {
+      langSelect.innerHTML = '<option value="">Tutte le Lingue</option>';
+      languages.forEach(lang => {
+        langSelect.innerHTML += `<option value="${lang}">${lang}</option>`;
+      });
+      
+      updateGenres();
+    }
+
+    function updateGenres() {
+      const selectedLang = document.getElementById('filter-language').value;
+      const genreSelect = document.getElementById('filter-genre');
+      
+      const filtered = selectedLang ? allTracks.filter(t => t.lingua === selectedLang) : allTracks;
+      const genres = [...new Set(filtered.map(t => t.genere).filter(Boolean))].sort();
+
+      genreSelect.innerHTML = '<option value="">Tutti i Generi</option>';
+      genres.forEach(genre => {
+        genreSelect.innerHTML += `<option value="${genre}">${genre}</option>`;
+      });
+
+      genreSelect.disabled = genres.length === 0;
+      document.getElementById('filter-artist').innerHTML = '<option value="">Tutti gli Artisti</option>';
+      document.getElementById('filter-artist').disabled = true;
+
+      renderTracks();
+    }
+
+    function updateArtists() {
+      const selectedLang = document.getElementById('filter-language').value;
+      const selectedGenre = document.getElementById('filter-genre').value;
+      const artistSelect = document.getElementById('filter-artist');
+      
+      let filtered = allTracks;
+      if (selectedLang) filtered = filtered.filter(t => t.lingua === selectedLang);
+      if (selectedGenre) filtered = filtered.filter(t => t.genere === selectedGenre);
+
+      const artists = [...new Set(filtered.map(t => t.artista).filter(Boolean))].sort();
+
+      artistSelect.innerHTML = '<option value="">Tutti gli Artisti</option>';
+      artists.forEach(artist => {
+        artistSelect.innerHTML += `<option value="${artist}">${artist}</option>`;
+      });
+
+      artistSelect.disabled = artists.length === 0;
+
+      renderTracks();
+    }
+
+    function renderTracks() {
+      const selectedLang = document.getElementById('filter-language').value;
+      const selectedGenre = document.getElementById('filter-genre').value;
+      const selectedArtist = document.getElementById('filter-artist').value;
+      const trackList = document.getElementById('track-list');
+
+      let filtered = allTracks;
+      if (selectedLang) filtered = filtered.filter(t => t.lingua === selectedLang);
+      if (selectedGenre) filtered = filtered.filter(t => t.genere === selectedGenre);
+      if (selectedArtist) filtered = filtered.filter(t => t.artista === selectedArtist);
+
+      if (filtered.length === 0) {
+        trackList.innerHTML = '<p style="color: #aaa; text-align: center;">Nessun brano corrisponde ai filtri selezionati.</p>';
+        return;
+      }
+
+      trackList.innerHTML = '';
+
+      for (const track of filtered) {
         const { data } = supabaseClient.storage.from('wish-music-75-files').getPublicUrl(track.file_key);
 
         const trackCard = document.createElement('div');
         trackCard.style.cssText = 'background: #2a2a2a; padding: 15px; border-radius: 6px; margin-bottom: 15px;';
         trackCard.innerHTML = `
-          <h3 style="margin: 0 0 5px 0; color: #1db954;">${track.title}</h3>
+          <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 5px;">
+            <h4 style="margin: 0; color: #ffffff; font-size: 1.1rem;">${track.title}</h4>
+            <span style="font-size: 0.75rem; background: #333; color: #1db954; padding: 2px 8px; border-radius: 10px;">${track.genere || 'Generico'} (${track.lingua || 'N/D'})</span>
+          </div>
+          <p style="margin: 0 0 8px 0; font-size: 0.85rem; color: #1db954; font-weight: bold;">${track.artista || 'Artista non specificato'}</p>
           <p style="margin: 0 0 10px 0; font-size: 0.85rem; color: #ccc;">${track.description || ''}</p>
           <audio controls controlsList="nodownload" oncontextmenu="return false;" style="width: 100%;">
             <source src="${data.publicUrl}" type="audio/mpeg">
@@ -146,8 +223,7 @@ const { data: tracks, error } = await supabaseClient
         trackList.appendChild(trackCard);
       }
     }
-    
-    
+
     async function logout() {
       await supabaseClient.auth.signOut();
       document.getElementById('login-box').classList.remove('hidden');

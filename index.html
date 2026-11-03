@@ -63,7 +63,7 @@
     .nav-btn {
       flex: 1;
       padding: 12px;
-      font-size: 0.85rem;
+      font-size: 0.80rem;
       text-align: center;
     }
     .bulk-btn {
@@ -78,7 +78,7 @@
       background: #444;
     }
 
-    /* --- Display Studio Hi-Fi Pro (ispirato agli equalizzatori professionali) --- */
+    /* --- Display Studio Hi-Fi Pro --- */
     #now-playing-display {
       background: #09090c;
       border: 1px solid #222;
@@ -166,12 +166,10 @@
       transition: height 0.1s ease;
     }
 
-    /* Animazione Spettrale Attiva con sfumatura stile mixer hardware */
     .playing .spec-bar {
       animation: spectrum-bounce 0.7s ease-in-out infinite alternate;
     }
 
-    /* Sfasamenti individuali per ogni barra per un movimento caotico e realistico da audio reale */
     .playing .spec-bar:nth-child(1)  { background: #3498db; animation-duration: 0.4s; animation-delay: 0.05s; }
     .playing .spec-bar:nth-child(2)  { background: #3498db; animation-duration: 0.6s; animation-delay: 0.2s; }
     .playing .spec-bar:nth-child(3)  { background: #2ecc71; animation-duration: 0.3s; animation-delay: 0.1s; }
@@ -218,7 +216,7 @@
 
     <!-- Sezione Player e Catalogo -->
     <div id="player-box" class="hidden">
-      <h2 style="color: #1db954; text-align: center; margin-top: 0;">Catalogo Privato</h2>
+      <h2 style="color: #1db954; text-align: center; margin-top: 0;">Catalogo Musicale di Produzione Privata</h2>
       <p style="text-align: center; color: #ccc; margin-bottom: 20px;">
         <span style="display: block;">Benvenuto! Accesso autorizzato.</span>
         <span style="display: block;">L'ascolto è consentito solo agli utenti registrati ed autorizzati.</span>
@@ -250,11 +248,11 @@
           <button onclick="setMainMode('repeat')" id="btn-repeat" class="control-btn" style="background: #16a085;">🔁 Repeat</button>
         </div>
 
-        <!-- Seconda Riga: Comandi d'azione sui brani -->
+        <!-- Seconda Riga: Comandi d'azione sui brani (Stop, Precedente, Play/Pausa, Successivo) -->
         <div style="display: flex; gap: 6px;">
           <button onclick="stopAllTracks()" class="nav-btn" style="background: #e74c3c;">⏹ Stop</button>
           <button onclick="playPrevious()" class="nav-btn" style="background: #34495e;">⏮ Precedente</button>
-          <button onclick="startPlaySong()" class="nav-btn" style="background: #1db954;">▶ Play Song</button>
+          <button onclick="togglePlayPause()" id="btn-play-pause" class="nav-btn" style="background: #1db954;">▶ Play Song</button>
           <button onclick="playNext()" class="nav-btn" style="background: #34495e;">Successivo ⏭</button>
         </div>
       </div>
@@ -309,6 +307,7 @@
 
     let activeQueue = [];
     let currentQueueIndex = -1;
+    let isPaused = false;
 
     async function login() {
       const email = document.getElementById('email').value;
@@ -523,6 +522,8 @@
 
       const track = currentFilteredTracks[filteredIndex];
       if (track) {
+        isPaused = false;
+        document.getElementById('btn-play-pause').innerText = '⏸ Pausa';
         updateNowPlayingDisplay(track, true);
       }
     }
@@ -535,6 +536,8 @@
       });
       currentQueueIndex = -1;
       activeQueue = [];
+      isPaused = false;
+      document.getElementById('btn-play-pause').innerText = '▶ Play Song';
       updateNowPlayingDisplay(null, false);
     }
 
@@ -560,6 +563,32 @@
       return targetAudios;
     }
 
+    // Gestione Intelligente Play / Pausa dal pannello centrale
+    function togglePlayPause() {
+      if (activeQueue.length > 0 && currentQueueIndex >= 0 && currentQueueIndex < activeQueue.length) {
+        const currentAudio = activeQueue[currentQueueIndex];
+        const trackIndex = currentAudio.getAttribute('data-index');
+        const track = currentFilteredTracks[trackIndex];
+
+        if (!currentAudio.paused) {
+          currentAudio.pause();
+          isPaused = true;
+          updateNowPlayingDisplay(track, false);
+          document.getElementById('btn-play-pause').innerText = '▶ Riprendi';
+        } else {
+          currentAudio.play().then(() => {
+            isPaused = false;
+            updateNowPlayingDisplay(track, true);
+            document.getElementById('btn-play-pause').innerText = '⏸ Pausa';
+          }).catch(e => {
+            console.log("Riproduzione bloccata:", e);
+          });
+        }
+      } else {
+        startPlaySong();
+      }
+    }
+
     function startPlaySong() {
       stopAllTracks();
       activeQueue = buildQueue();
@@ -583,6 +612,8 @@
         const trackIndex = currentAudio.getAttribute('data-index');
         const track = currentFilteredTracks[trackIndex];
 
+        isPaused = false;
+        document.getElementById('btn-play-pause').innerText = '⏸ Pausa';
         updateNowPlayingDisplay(track, true);
         
         currentAudio.onended = function() {
@@ -591,6 +622,8 @@
           } else if (currentMode === 'repeat') {
             playQueueIndex(0);
           } else {
+            isPaused = false;
+            document.getElementById('btn-play-pause').innerText = '▶ Play Song';
             updateNowPlayingDisplay(null, false);
           }
         };

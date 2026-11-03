@@ -1,22 +1,120 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sito Musicale</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #121212;
-            color: #ffffff;
-            text-align: center;
-            padding: 50px;
-        }
-        h1 { color: #1db954; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Wish Music 75 - Private Catalog</title>
+  <!-- Libreria Supabase JS -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #121212;
+      color: #ffffff;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+    }
+    .container {
+      background-color: #1e1e1e;
+      padding: 2rem;
+      border-radius: 8px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+      width: 100%;
+      max-width: 400px;
+    }
+    h2 { color: #1db954; text-align: center; }
+    input {
+      width: 100%;
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 4px;
+      border: 1px solid #333;
+      background: #2a2a2a;
+      color: #fff;
+      box-sizing: border-box;
+    }
+    button {
+      width: 100%;
+      padding: 10px;
+      background-color: #1db954;
+      border: none;
+      border-radius: 4px;
+      color: #fff;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    button:hover { background-color: #1ed760; }
+    .hidden { display: none; }
+    .error { color: #ff5555; font-size: 0.9rem; margin-top: 10px; }
+  </style>
 </head>
 <body>
-    <h1>Il mio Sito Musicale</h1>
-    <p>Benvenuto! Area riservata in fase di configurazione.</p>
+
+  <div class="container" id="login-box">
+    <h2>Wish Music 75</h2>
+    <p style="text-align:center; font-size: 0.9rem;">Accedi per ascoltare i brani protetti</p>
+    <input type="email" id="email" placeholder="Email">
+    <input type="password" id="password" placeholder="Password">
+    <button onclick="login()">Accedi</button>
+    <div id="error-msg" class="error"></div>
+  </div>
+
+  <div class="container hidden" id="player-box">
+    <h2>Catalogo Privato</h2>
+    <p>Benvenuto! Accesso autorizzato.</p>
+    <div id="track-list">
+      <p style="color: #aaa;">Nessun brano ancora presente.</p>
+    </div>
+    <button onclick="logout()" style="margin-top: 20px; background-color: #444;">Esci</button>
+  </div>
+
+  <script>
+    // Sostituisci qui con le tue chiavi prese da Settings > API su Supabase
+    const SUPABASE_URL = 'https://srymbehnppgvxjnithbj.supabase.co';
+    const SUPABASE_ANON_KEY = 'sb_publishable_TJ9gHfCbw09uNbT46xDByg_xluGQ1f6';
+
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    async function login() {
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      const errorMsg = document.getElementById('error-msg');
+      errorMsg.innerText = '';
+
+      // 1. Autenticazione utente
+      const { data: { user }, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+
+      if (error) {
+        errorMsg.innerText = 'Credenziali non valide.';
+        return;
+      }
+
+      // 2. Controllo permesso approved nella tabella profiles
+      const { data: profile, error: profileError } = await supabaseClient
+        .from('profiles')
+        .select('status')
+        .eq('id', user.id)
+        .single();
+
+      if (profileError || !profile || profile.status !== 'approved') {
+        errorMsg.innerText = 'Account non ancora approvato dall\'amministratore.';
+        await supabaseClient.auth.signOut();
+        return;
+      }
+
+      // 3. Mostra area riservata
+      document.getElementById('login-box').classList.add('hidden');
+      document.getElementById('player-box').classList.remove('hidden');
+    }
+
+    async function logout() {
+      await supabaseClient.auth.signOut();
+      document.getElementById('login-box').classList.remove('hidden');
+      document.getElementById('player-box').classList.add('hidden');
+    }
+  </script>
 </body>
 </html>

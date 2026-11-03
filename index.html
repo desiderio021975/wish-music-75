@@ -135,7 +135,7 @@
         trackCard.innerHTML = `
           <h3 style="margin: 0 0 5px 0; color: #1db954;">${track.title}</h3>
           <p style="margin: 0 0 10px 0; font-size: 0.85rem; color: #ccc;">${track.description || ''}</p>
-          <audio controls style="width: 100%;">
+          <audio controls controlsList="nodownload" oncontextmenu="return false;" style="width: 100%;">
             <source src="${data.publicUrl}" type="audio/mpeg">
             Il tuo browser non supporta l'elemento audio.
           </audio>

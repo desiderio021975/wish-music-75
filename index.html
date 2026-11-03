@@ -52,11 +52,12 @@
     }
     .control-btn {
       flex: 1;
-      min-width: 90px;
-      font-size: 0.8rem;
+      min-width: 110px;
+      font-size: 0.85rem;
     }
     .active-mode {
       border: 2px solid #ffffff !important;
+      background-color: #1abc9c !important;
       box-shadow: 0 0 8px #1db954;
     }
     .nav-btn {
@@ -103,15 +104,15 @@
       <div style="margin-bottom: 20px; border: 1px solid #333; padding: 15px; border-radius: 6px; background: #222;">
         <p style="font-size: 0.9rem; color: #aaa; margin: 0 0 10px 0; text-align: center;">Pannello di Controllo Player</p>
         
-        <!-- Riga delle modalità (Play ALL, Random, Lista Top, Repeat) -->
+        <!-- Prima Riga: 4 pulsanti di modalità esclusiva -->
         <div style="display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px;">
-          <button onclick="setMode('playAll')" id="btn-playAll" class="control-btn" style="background: #2c3e50;">▶ Play ALL</button>
-          <button onclick="setMode('random')" id="btn-random" class="control-btn" style="background: #8e44ad;">🔀 Random</button>
-          <button onclick="toggleMode('listaTop')" id="btn-listaTop" class="control-btn" style="background: #d35400;">⭐ Lista Top</button>
-          <button onclick="toggleMode('repeat')" id="btn-repeat" class="control-btn" style="background: #16a085;">🔁 Repeat</button>
+          <button onclick="setMainMode('playAll')" id="btn-playAll" class="control-btn" style="background: #2c3e50;">▶ Play ALL</button>
+          <button onclick="setMainMode('random')" id="btn-random" class="control-btn" style="background: #8e44ad;">🔀 Random</button>
+          <button onclick="setMainMode('listaTop')" id="btn-listaTop" class="control-btn" style="background: #d35400;">⭐ Lista Top</button>
+          <button onclick="setMainMode('repeat')" id="btn-repeat" class="control-btn" style="background: #16a085;">🔁 Repeat</button>
         </div>
 
-        <!-- Riga con Stop, Precedente, Play Song, Successivo (dimensionati uguali a copertura finestra) -->
+        <!-- Seconda Riga: Azioni sui brani -->
         <div style="display: flex; gap: 6px;">
           <button onclick="stopAllTracks()" class="nav-btn" style="background: #e74c3c;">⏹ Stop</button>
           <button onclick="playPrevious()" class="nav-btn" style="background: #34495e;">⏮ Precedente</button>
@@ -128,18 +129,14 @@
   </div>
 
   <script>
-// Sostituisci qui con le tue chiavi prese da Settings > API su Supabase
+    // Sostituisci qui con le tue chiavi prese da Settings > API su Supabase
     const SUPABASE_URL = 'https://srymbehnppgvxjnithbj.supabase.co';
     const SUPABASE_ANON_KEY = 'sb_publishable_TJ9gHfCbw09uNbT46xDByg_xluGQ1f6';
 
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     let allTracks = [];
-    let currentMode = 'playAll';
-    let activeFiltersMode = {
-      listaTop: false,
-      repeat: false
-    };
+    let currentMode = 'playAll'; // 'playAll', 'random', 'listaTop', 'repeat'
 
     let activeQueue = [];
     let currentQueueIndex = -1;
@@ -268,12 +265,11 @@
         const track = filtered[i];
         const { data } = supabaseClient.storage.from('wish-music-75-files').getPublicUrl(track.file_key);
 
-        let leftCheckboxesHtml = '';
-        if (activeFiltersMode.listaTop) {
-          leftCheckboxesHtml += `<label style="font-size: 0.8rem; color: #d35400; margin-right: 10px; cursor: pointer;"><input type="checkbox" class="top-checkbox" data-index="${i}" checked> Top</label>`;
-        }
-        if (activeFiltersMode.repeat) {
-          leftCheckboxesHtml += `<label style="font-size: 0.8rem; color: #16a085; margin-right: 10px; cursor: pointer;"><input type="checkbox" class="repeat-checkbox" data-index="${i}" checked> Repeat</label>`;
+        let leftCheckboxHtml = '';
+        if (currentMode === 'listaTop') {
+          leftCheckboxHtml = `<label style="font-size: 0.8rem; color: #d35400; margin-right: 10px; cursor: pointer;"><input type="checkbox" class="track-checkbox" data-index="${i}" checked> Top</label>`;
+        } else if (currentMode === 'repeat') {
+          leftCheckboxHtml = `<label style="font-size: 0.8rem; color: #16a085; margin-right: 10px; cursor: pointer;"><input type="checkbox" class="track-checkbox" data-index="${i}" checked> Repeat</label>`;
         }
 
         const trackCard = document.createElement('div');
@@ -281,7 +277,7 @@
         trackCard.innerHTML = `
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
             <div style="display: flex; align-items: center; gap: 8px; flex: 1;">
-              ${leftCheckboxesHtml}
+              ${leftCheckboxHtml}
               <h4 style="margin: 0; color: #ffffff; font-size: 1.1rem;">${track.title}</h4>
             </div>
             <span style="font-size: 0.75rem; background: #333; color: #1db954; padding: 2px 8px; border-radius: 10px;">${track.genere || 'Generico'} (${track.lingua || 'N/D'})</span>
@@ -298,18 +294,15 @@
       updateModeUI();
     }
 
-    function setMode(mode) {
+    // Gestione della prima riga: seleziona una modalità in esclusiva e ridisegna
+    function setMainMode(mode) {
       currentMode = mode;
-      updateModeUI();
-    }
-
-    function toggleMode(modeName) {
-      activeFiltersMode[modeName] = !activeFiltersMode[modeName];
       renderTracks();
     }
 
     function updateModeUI() {
-      ['playAll', 'random'].forEach(m => {
+      const modes = ['playAll', 'random', 'listaTop', 'repeat'];
+      modes.forEach(m => {
         const btn = document.getElementById(`btn-${m}`);
         if (btn) {
           if (currentMode === m) {
@@ -319,19 +312,9 @@
           }
         }
       });
-
-      ['listaTop', 'repeat'].forEach(m => {
-        const btn = document.getElementById(`btn-${m}`);
-        if (btn) {
-          if (activeFiltersMode[m]) {
-            btn.classList.add('active-mode');
-          } else {
-            btn.classList.remove('active-mode');
-          }
-        }
-      });
     }
 
+    // Stop globale
     function stopAllTracks() {
       const audioElements = document.querySelectorAll('audio');
       audioElements.forEach(audio => {
@@ -342,6 +325,7 @@
       activeQueue = [];
     }
 
+    // Costruisce la coda di esecuzione in base alla modalità della prima riga e ai checkbox attivi
     function buildQueue() {
       const audioElements = Array.from(document.querySelectorAll('audio'));
       if (audioElements.length === 0) return [];
@@ -349,19 +333,16 @@
       let targetAudios = audioElements.filter(audio => {
         const index = audio.getAttribute('data-index');
         
-        if (activeFiltersMode.listaTop) {
-          const topCheck = document.querySelector(`.top-checkbox[data-index="${index}"]`);
-          if (topCheck && !topCheck.checked) return false;
-        }
-
-        if (activeFiltersMode.repeat) {
-          const repeatCheck = document.querySelector(`.repeat-checkbox[data-index="${index}"]`);
-          if (repeatCheck && !repeatCheck.checked) return false;
+        // Se siamo in modalità Lista Top o Repeat, verifichiamo lo stato del checkbox
+        if (currentMode === 'listaTop' || currentMode === 'repeat') {
+          const checkbox = document.querySelector(`.track-checkbox[data-index="${index}"]`);
+          if (checkbox && !checkbox.checked) return false;
         }
 
         return true;
       });
 
+      // Se la modalità è Random, mescoliamo l'array filtrato
       if (currentMode === 'random') {
         targetAudios.sort(() => Math.random() - 0.5);
       }
@@ -369,12 +350,13 @@
       return targetAudios;
     }
 
+    // Azione Play Song: Avvia la riproduzione in base alla modalità selezionata
     function startPlaySong() {
       stopAllTracks();
       activeQueue = buildQueue();
 
       if (activeQueue.length === 0) {
-        alert("Nessun brano selezionato soddisfa i filtri attivi (Lista Top / Repeat).");
+        alert("Nessun brano idoneo trovato per la modalità corrente.");
         return;
       }
 
@@ -391,6 +373,9 @@
         currentAudio.onended = function() {
           if (currentQueueIndex + 1 < activeQueue.length) {
             playQueueIndex(currentQueueIndex + 1);
+          } else if (currentMode === 'repeat') {
+            // Se siamo in repeat e finisce la lista, ricomincia da capo
+            playQueueIndex(0);
           }
         };
 
@@ -400,6 +385,7 @@
       }
     }
 
+    // Tasto Successivo
     function playNext() {
       if (activeQueue.length === 0) {
         activeQueue = buildQueue();
@@ -407,15 +393,18 @@
       if (activeQueue.length > 0) {
         let nextIndex = currentQueueIndex + 1;
         if (nextIndex >= activeQueue.length) {
-          nextIndex = 0;
+          nextIndex = 0; // Torna all'inizio
         }
         playQueueIndex(nextIndex);
       }
     }
 
+    // Tasto Precedente
     function playPrevious() {
       if (activeQueue.length > 0 && currentQueueIndex > 0) {
         playQueueIndex(currentQueueIndex - 1);
+      } else if (activeQueue.length > 0) {
+        playQueueIndex(0);
       }
     }
 

@@ -67,10 +67,12 @@
       text-align: center;
     }
     .bulk-btn {
-      padding: 6px 12px;
-      font-size: 0.75rem;
+      flex: 1;
+      padding: 8px;
+      font-size: 0.8rem;
       background: #333;
       border: 1px solid #555;
+      text-align: center;
     }
     .bulk-btn:hover {
       background: #444;
@@ -110,7 +112,7 @@
       </div>
 
       <!-- 2. Pannello di Controllo Player -->
-      <div style="margin-bottom: 20px; border: 1px solid #333; padding: 15px; border-radius: 6px; background: #222;">
+      <div style="margin-bottom: 15px; border: 1px solid #333; padding: 15px; border-radius: 6px; background: #222;">
         <p style="font-size: 0.9rem; color: #aaa; margin: 0 0 10px 0; text-align: center;">Pannello di Controllo Player</p>
         
         <!-- Prima Riga: Modalità esclusive -->
@@ -131,7 +133,7 @@
       </div>
 
       <!-- Controlli di Selezione Massiva (appaiono solo se Lista Top o Repeat sono attivi) -->
-      <div id="bulk-controls" class="hidden" style="display: flex; justify-content: flex-end; gap: 8px; margin-bottom: 10px;">
+      <div id="bulk-controls" class="hidden" style="display: flex; gap: 8px; margin-bottom: 15px;">
         <button onclick="toggleAllCheckboxes(true)" class="bulk-btn">Seleziona Tutti</button>
         <button onclick="toggleAllCheckboxes(false)" class="bulk-btn">Deseleziona Tutti</button>
       </div>
@@ -265,7 +267,6 @@
       const trackList = document.getElementById('track-list');
       const bulkControls = document.getElementById('bulk-controls');
 
-      // Mostra o nascondi i tasti Seleziona/Deseleziona tutti in base alla modalità
       if (currentMode === 'listaTop' || currentMode === 'repeat') {
         bulkControls.classList.remove('hidden');
       } else {
@@ -318,7 +319,6 @@
       updateModeUI();
     }
 
-    // Funzione per selezionare o deselezionare massivamente tutti i checkbox visibili
     function toggleAllCheckboxes(selectStatus) {
       const checkboxes = document.querySelectorAll('.track-checkbox');
       checkboxes.forEach(cb => {
@@ -392,7 +392,10 @@
 
     function playQueueIndex(index) {
       if (index >= 0 && index < activeQueue.length) {
-        stopAllTracks();
+        // Mette in pausa tutti gli altri prima di far partire quello corrente
+        const audioElements = document.querySelectorAll('audio');
+        audioElements.forEach(audio => audio.pause());
+
         currentQueueIndex = index;
         const currentAudio = activeQueue[currentQueueIndex];
         
@@ -405,7 +408,7 @@
         };
 
         currentAudio.play().catch(e => {
-          console.log("Riproduzione automatica bloccata dal browser:", e);
+          console.log("Riproduzione bloccata dal browser:", e);
         });
       }
     }

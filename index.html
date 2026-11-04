@@ -247,7 +247,7 @@
         </p>>
       </div>
 
-      <!-- 1. Menu a tendina per i filtri a cascata -->
+      <!-- 1. Menu a tendina per i filtri a cascata (Aggiunto filtro Tipo Brano per Admin) -->
       <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
         <select id="filter-language" onchange="updateGenres()">
           <option value="">Tutte le Lingue</option>
@@ -257,6 +257,13 @@
         </select>
         <select id="filter-artist" onchange="renderTracks()" disabled>
           <option value="">Tutti gli Artisti</option>
+        </select>
+        <!-- Filtro Tipo Brano visibile solo per Admin -->
+        <select id="filter-tipo" class="hidden" onchange="renderTracks()">
+          <option value="">Tutti i Tipi</option>
+          <option value="pubblico">Pubblico</option>
+          <option value="privato">Privato</option>
+          <option value="user">User</option>
         </select>
       </div>
 
@@ -319,7 +326,7 @@
   </div>
 
   <script>
-    // Sostituisci qui con le tue chiavi prese da Settings > API su Supabase
+// Sostituisci qui con le tue chiavi prese da Settings > API su Supabase
     const SUPABASE_URL = 'https://srymbehnppgvxjnithbj.supabase.co';
     const SUPABASE_ANON_KEY = 'sb_publishable_TJ9gHfCbw09uNbT46xDByg_xluGQ1f6';
 
@@ -328,7 +335,7 @@
     let allTracks = [];
     let currentFilteredTracks = [];
     let currentMode = 'playAll'; 
-    let userRole = 'user'; // Ruolo utente predefinito
+    let userRole = 'user'; 
 
     let activeQueue = [];
     let currentQueueIndex = -1;
@@ -347,7 +354,6 @@
         return;
       }
 
-      // Preleviamo status e role dalla tabella profiles
       const { data: profile, error: profileError } = await supabaseClient
         .from('profiles')
         .select('status, role')
@@ -362,6 +368,13 @@
 
       userRole = profile.role || 'user';
 
+      // Mostra il filtro tipo brano solo se l'utente è admin
+      if (userRole === 'admin') {
+        document.getElementById('filter-tipo').classList.remove('hidden');
+      } else {
+        document.getElementById('filter-tipo').classList.add('hidden');
+      }
+
       document.getElementById('login-box').classList.add('hidden');
       document.getElementById('player-box').classList.remove('hidden');
       
@@ -374,7 +387,7 @@
 
       let query = supabaseClient.from('tracks').select('*');
 
-      // Se l'utente non è admin, mostra solo i brani con tipo 'user'
+      // Se l'utente non è admin, forza il filtro sui soli brani di tipo 'user'
       if (userRole !== 'admin') {
         query = query.eq('tipo', 'user');
       }
@@ -447,6 +460,8 @@
       const selectedLang = document.getElementById('filter-language').value;
       const selectedGenre = document.getElementById('filter-genre').value;
       const selectedArtist = document.getElementById('filter-artist').value;
+      const selectedTipo = userRole === 'admin' ? document.getElementById('filter-tipo').value : '';
+      
       const trackList = document.getElementById('track-list');
       const bulkControls = document.getElementById('bulk-controls');
 
@@ -460,6 +475,7 @@
       if (selectedLang) filtered = filtered.filter(t => t.lingua === selectedLang);
       if (selectedGenre) filtered = filtered.filter(t => t.genere === selectedGenre);
       if (selectedArtist) filtered = filtered.filter(t => t.artista === selectedArtist);
+      if (selectedTipo) filtered = filtered.filter(t => t.tipo === selectedTipo);
 
       currentFilteredTracks = filtered;
 

@@ -7,11 +7,10 @@
   <!-- SDK di Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
-    /* Configurazione globale corretta per permettere lo scroll completo dall'alto */
+    /* Sfondo esterno con l'immagine naturale e originale, senza oscuramenti */
     html {
       min-height: 100%;
-      background: linear-gradient(rgba(18, 18, 18, 0.75), rgba(18, 18, 18, 0.85)), 
-                  url('https://srymbehnppgvxjnithbj.supabase.co/storage/v1/object/public/wish-music-75-files/kifoku-disco-22606_512.gif') no-repeat center center fixed;
+      background: url('https://srymbehnppgvxjnithbj.supabase.co/storage/v1/object/public/wish-music-75-files/kifoku-disco-22606_512.gif') no-repeat center center fixed;
       background-size: cover;
     }
 
@@ -22,7 +21,7 @@
       color: #ffffff;
       display: flex;
       justify-content: center;
-      align-items: flex-start; /* Permette al box di partire dall'alto e scorrere interamente */
+      align-items: flex-start;
       min-height: 100vh;
       box-sizing: border-box;
     }
@@ -31,8 +30,9 @@
       display: none !important;
     }
 
+    /* Riquadro centrale (catalogo/login) con sfondo scuro semi-trasparente e effetto blur */
     .box {
-      background: rgba(24, 24, 24, 0.90);
+      background: rgba(18, 18, 18, 0.85);
       backdrop-filter: blur(8px);
       padding: 30px;
       border-radius: 8px;
@@ -40,7 +40,7 @@
       max-width: 650px;
       box-shadow: 0 8px 25px rgba(0,0,0,0.8);
       border: 1px solid rgba(255, 255, 255, 0.15);
-      margin: auto 0; /* Centra verticalmente se c'è spazio, altrimenti scorre liberamente */
+      margin: auto 0;
     }
 
     input, select {

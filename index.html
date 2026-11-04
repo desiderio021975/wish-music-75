@@ -30,16 +30,16 @@
       display: none !important;
     }
 
-    /* Riquadro centrale (catalogo/login) con sfondo scuro semi-trasparente e effetto blur */
+    /* Riquadro centrale molto più trasparente per vedere bene la GIF dietro */
     .box {
-      background: rgba(18, 18, 18, 0.85);
-      backdrop-filter: blur(8px);
+      background: rgba(18, 18, 18, 0.45);
+      backdrop-filter: blur(4px);
       padding: 30px;
       border-radius: 8px;
       width: 100%;
       max-width: 650px;
-      box-shadow: 0 8px 25px rgba(0,0,0,0.8);
-      border: 1px solid rgba(255, 255, 255, 0.15);
+      box-shadow: 0 8px 25px rgba(0,0,0,0.6);
+      border: 1px solid rgba(255, 255, 255, 0.2);
       margin: auto 0;
     }
 
@@ -47,9 +47,9 @@
       width: 100%;
       padding: 10px;
       margin-bottom: 15px;
-      background: #2a2a2a;
+      background: rgba(42, 42, 42, 0.85);
       color: #fff;
-      border: 1px solid #444;
+      border: 1px solid rgba(255, 255, 255, 0.2);
       border-radius: 4px;
       box-sizing: border-box;
     }
@@ -91,20 +91,20 @@
       flex: 1;
       padding: 8px;
       font-size: 0.80rem;
-      background: #333;
-      border: 1px solid #555;
+      background: rgba(51, 51, 51, 0.85);
+      border: 1px solid rgba(255, 255, 255, 0.2);
       text-align: center;
     }
 
     .bulk-btn:hover {
-      background: #444;
+      background: rgba(68, 68, 68, 0.9);
     }
 
     /* --- Display Studio Hi-Fi Pro --- */
     #now-playing-display {
-      background: #09090c;
-      border: 1px solid #222;
-      border-top: 1px solid #333;
+      background: rgba(9, 9, 12, 0.85);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-top: 1px solid rgba(255, 255, 255, 0.25);
       border-radius: 8px;
       padding: 15px 18px;
       margin-bottom: 15px;
@@ -152,7 +152,7 @@
 
     .np-artist {
       font-size: 0.85rem;
-      color: #888;
+      color: #aaa;
       margin: 0;
       font-weight: 500;
     }
@@ -163,7 +163,7 @@
       align-items: center;
       gap: 6px;
       font-size: 0.7rem;
-      color: #666;
+      color: #888;
       text-transform: uppercase;
       letter-spacing: 1px;
     }
@@ -195,15 +195,15 @@
       justify-content: space-between;
       height: 38px;
       padding: 4px 6px;
-      background: #050507;
+      background: rgba(5, 5, 7, 0.9);
       border-radius: 4px;
-      border: 1px solid #1a1a1f;
+      border: 1px solid rgba(255, 255, 255, 0.1);
       overflow: hidden;
     }
 
     .spec-bar {
       width: 3.5px;
-      background: #222;
+      background: #333;
       height: 4px;
       border-radius: 1px;
       transition: height 0.1s ease;
@@ -265,7 +265,7 @@
           🎧 Catalogo Musicale di Produzione Privata
         </h2>
         <div style="width: 60px; height: 3px; background: #1db954; margin: 0 auto 12px auto; border-radius: 2px; box-shadow: 0 0 8px #1db954;"></div>
-        <p style="text-align: center; color: #ccc; margin-bottom: 20px;">
+        <p style="text-align: center; color: #ddd; margin-bottom: 20px; font-weight: 500;">
           <span style="display: block;">Benvenuto! Accesso autorizzato.</span>
           <span style="display: block;">L'ascolto è consentito solo agli utenti registrati ed autorizzati.</span>
           <span style="display: block;">La copia e la divulgazione sono assolutamente vietati.</span>
@@ -293,7 +293,7 @@
       </div>
 
       <!-- 2. Pannello di Controllo Player -->
-      <div style="margin-bottom: 15px; border: 1px solid #444; padding: 15px; border-radius: 6px; background: #222; box-shadow: 0 0 10px rgba(0,0,0,0.5);">
+      <div style="margin-bottom: 15px; border: 1px solid rgba(255,255,255,0.2); padding: 15px; border-radius: 6px; background: rgba(34,34,34,0.6); box-shadow: 0 0 10px rgba(0,0,0,0.5);">
         <p style="font-size: 1.05rem; color: #1db954; font-weight: bold; margin: 0 0 12px 0; text-align: center; text-transform: uppercase; letter-spacing: 1px;">⚙️ Pannello di Controllo Player</p>
         
         <!-- Prima Riga: Modalità esclusive -->
@@ -521,17 +521,17 @@
         }
 
         const trackCard = document.createElement('div');
-        trackCard.style.cssText = 'background: #2a2a2a; padding: 15px; border-radius: 6px; margin-bottom: 15px;';
+        trackCard.style.cssText = 'background: rgba(42, 42, 42, 0.65); backdrop-filter: blur(2px); padding: 15px; border-radius: 6px; margin-bottom: 15px; border: 1px solid rgba(255, 255, 255, 0.1);';
         trackCard.innerHTML = `
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
             <div style="display: flex; align-items: center; gap: 8px; flex: 1;">
               ${leftCheckboxHtml}
               <h4 style="margin: 0; color: #ffffff; font-size: 1.1rem;">${track.title}</h4>
             </div>
-            <span style="font-size: 0.75rem; background: #333; color: #1db954; padding: 2px 8px; border-radius: 10px;">${track.genere || 'Generico'} (${track.lingua || 'N/D'})</span>
+            <span style="font-size: 0.75rem; background: rgba(0,0,0,0.5); color: #1db954; padding: 2px 8px; border-radius: 10px;">${track.genere || 'Generico'} (${track.lingua || 'N/D'})</span>
           </div>
           <p style="margin: 0 0 8px 0; font-size: 0.85rem; color: #1db954; font-weight: bold;">${track.artista || 'Artista non specificato'}</p>
-          <p style="margin: 0 0 10px 0; font-size: 0.85rem; color: #ccc;">${track.description || ''}</p>
+          <p style="margin: 0 0 10px 0; font-size: 0.85rem; color: #ddd;">${track.description || ''}</p>
           <audio controls controlsList="nodownload" oncontextmenu="return false;" style="width: 100%;" data-index="${i}" onplay="onManualPlay(${i})">
             <source src="${data.publicUrl}" type="audio/mpeg">
             Il tuo browser non supporta l'elemento audio.

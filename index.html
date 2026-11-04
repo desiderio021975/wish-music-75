@@ -237,7 +237,7 @@
       <!-- Intestazione Principale Accattivante e d'Effetto -->
       <div style="text-align: center; margin-bottom: 25px;">
         <h2 style="font-size: 1.6rem; font-weight: 800; background: linear-gradient(135deg, #1db954 0%, #1ed760 50%, #3498db 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin: 0 0 8px 0; letter-spacing: 0.5px; text-shadow: 0 2px 10px rgba(29,185,84,0.2);">
-          🎧 Catalogo Musicale di Produzione Privata
+          ?? Catalogo Musicale di Produzione Privata
         </h2>
         <div style="width: 60px; height: 3px; background: #1db954; margin: 0 auto 12px auto; border-radius: 2px; box-shadow: 0 0 8px #1db954;"></div>
         <p style="text-align: center; color: #ccc; margin-bottom: 20px;">
@@ -328,6 +328,7 @@
     let allTracks = [];
     let currentFilteredTracks = [];
     let currentMode = 'playAll'; 
+    let userRole = 'user'; // Ruolo utente predefinito
 
     let activeQueue = [];
     let currentQueueIndex = -1;
@@ -346,9 +347,10 @@
         return;
       }
 
+      // Preleviamo status e role dalla tabella profiles
       const { data: profile, error: profileError } = await supabaseClient
         .from('profiles')
-        .select('status')
+        .select('status, role')
         .eq('id', user.id)
         .single();
 
@@ -357,6 +359,8 @@
         await supabaseClient.auth.signOut();
         return;
       }
+
+      userRole = profile.role || 'user';
 
       document.getElementById('login-box').classList.add('hidden');
       document.getElementById('player-box').classList.remove('hidden');
@@ -368,13 +372,17 @@
       const trackList = document.getElementById('track-list');
       trackList.innerHTML = '<p>Caricamento brani...</p>';
 
-      const { data: tracks, error } = await supabaseClient
-        .from('tracks')
-        .select('*')
-        .order('title', { ascending: true });
+      let query = supabaseClient.from('tracks').select('*');
+
+      // Se l'utente non è admin, mostra solo i brani con tipo 'user'
+      if (userRole !== 'admin') {
+        query = query.eq('tipo', 'user');
+      }
+
+      const { data: tracks, error } = await query.order('title', { ascending: true });
 
       if (error || !tracks || tracks.length === 0) {
-        trackList.innerHTML = '<p style="color: #aaa; text-align: center;">Nessun brano ancora presente.</p>';
+        trackList.innerHTML = '<p style="color: #aaa; text-align: center;">Nessun brano disponibile per il tuo account.</p>';
         return;
       }
 
@@ -685,8 +693,8 @@
 
     async function logout() {
       await supabaseClient.auth.signOut();
-      document.getElementById('login-box').classList.add('hidden');
-      document.getElementById('player-box').classList.remove('hidden');
+      document.getElementById('login-box').classList.remove('hidden');
+      document.getElementById('player-box').classList.add('hidden');
     }
   </script>
 </body>

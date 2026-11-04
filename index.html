@@ -247,7 +247,7 @@
         </p>>
       </div>
 
-      <!-- 1. Menu a tendina per i filtri a cascata (Aggiunto filtro Tipo Brano per Admin) -->
+      <!-- 1. Menu a tendina per i filtri a cascata -->
       <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
         <select id="filter-language" onchange="updateGenres()">
           <option value="">Tutte le Lingue</option>
@@ -326,7 +326,7 @@
   </div>
 
   <script>
-// Sostituisci qui con le tue chiavi prese da Settings > API su Supabase
+    // Sostituisci qui con le tue chiavi prese da Settings > API su Supabase
     const SUPABASE_URL = 'https://srymbehnppgvxjnithbj.supabase.co';
     const SUPABASE_ANON_KEY = 'sb_publishable_TJ9gHfCbw09uNbT46xDByg_xluGQ1f6';
 
@@ -368,7 +368,6 @@
 
       userRole = profile.role || 'user';
 
-      // Mostra il filtro tipo brano solo se l'utente è admin
       if (userRole === 'admin') {
         document.getElementById('filter-tipo').classList.remove('hidden');
       } else {
@@ -387,9 +386,9 @@
 
       let query = supabaseClient.from('tracks').select('*');
 
-      // Se l'utente non è admin, forza il filtro sui soli brani di tipo 'user'
+      // CORRETTO: Se l'utente non è admin, carica solo i brani con tipo 'pubblico'
       if (userRole !== 'admin') {
-        query = query.eq('tipo', 'user');
+        query = query.eq('tipo', 'pubblico');
       }
 
       const { data: tracks, error } = await query.order('title', { ascending: true });

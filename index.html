@@ -511,7 +511,9 @@
 
       for (let i = 0; i < filtered.length; i++) {
         const track = filtered[i];
-        const { data } = supabaseClient.storage.from('wish-music-75-files').getPublicUrl(track.file_key);
+        
+        // MODIFICA EFFETTUATA: preleva l'URL direttamente da Cloudflare R2 tramite la colonna file_url
+        const publicUrl = track.file_url || '';
 
         let leftCheckboxHtml = '';
         if (currentMode === 'listaTop') {
@@ -533,7 +535,7 @@
           <p style="margin: 0 0 8px 0; font-size: 0.85rem; color: #1db954; font-weight: bold;">${track.artista || 'Artista non specificato'}</p>
           <p style="margin: 0 0 10px 0; font-size: 0.85rem; color: #ddd;">${track.description || ''}</p>
           <audio controls controlsList="nodownload" oncontextmenu="return false;" style="width: 100%;" data-index="${i}" onplay="onManualPlay(${i})">
-            <source src="${data.publicUrl}" type="audio/mpeg">
+            <source src="${publicUrl}" type="audio/mpeg">
             Il tuo browser non supporta l'elemento audio.
           </audio>
         `;
